@@ -295,6 +295,7 @@ function fitText(ctx, text, maxWidth, startSize, minSize, fontWeight = 'bold') {
 }
 
 
+
 // --------------------------------------------------
 // GENERATE BILL IMAGE
 // --------------------------------------------------
@@ -305,12 +306,16 @@ function drawBill(bill) {
   const pad = 58;
   const lineH = 56;
 
-  // Fixed product table position with space for customer details
+  // Product table position
   const tableY = 300;
 
-  // Dynamic canvas height to prevent footer clipping
+  // Dynamic canvas height
   const footerSpace = 245;
-  const h = tableY + 42 + Math.max(1, bill.items.length) * lineH + footerSpace;
+  const h =
+    tableY +
+    42 +
+    Math.max(1, bill.items.length) * lineH +
+    footerSpace;
 
   const canvas = document.createElement('canvas');
   canvas.width = w * scale;
@@ -318,6 +323,10 @@ function drawBill(bill) {
 
   const c = canvas.getContext('2d');
   c.scale(scale, scale);
+
+  const centerX = w / 2;
+  const maxWidth = w - (pad * 2);
+  const tamilFont = '"Noto Sans Tamil", "Latha", "Nirmala UI", sans-serif';
 
   // Background
   c.fillStyle = '#fffdfa';
@@ -335,32 +344,53 @@ function drawBill(bill) {
   c.textAlign = 'center';
   c.textBaseline = 'alphabetic';
 
-  const centerX = w / 2;
-  const maxWidth = w - (pad * 2);
-
-  // Tamil devotional text
+  // Tamil devotional heading
   const tamilText = 'ஸ்ரீ பச்சை பெருமாள் ஐய்யனார் துணை';
 
-  fitText(c, tamilText, maxWidth, 18, 11, 'normal');
+  const tamilSize = fitText(
+    c,
+    tamilText,
+    maxWidth,
+    22,
+    12,
+    'normal'
+  );
 
+  c.font = `normal ${tamilSize}px ${tamilFont}`;
   c.fillStyle = '#6b2d20';
-  c.fillText(tamilText, centerX, 55);
+  c.fillText(tamilText, centerX, 55, maxWidth);
 
   // Business name
   const businessName = state.businessName || 'Idhayam Candles';
 
-  fitText(c, businessName, maxWidth, 34, 18, 'bold');
+  const businessSize = fitText(
+    c,
+    businessName,
+    maxWidth,
+    34,
+    18,
+    'bold'
+  );
 
+  c.font = `bold ${businessSize}px Georgia, serif`;
   c.fillStyle = '#351b18';
-  c.fillText(businessName, centerX, 100);
+  c.fillText(businessName, centerX, 100, maxWidth);
 
   // Business subtitle
   const subtitle = 'MANUFACTURING  •  WHOLESALE';
 
-  fitText(c, subtitle, maxWidth, 14, 10, 'normal');
+  const subtitleSize = fitText(
+    c,
+    subtitle,
+    maxWidth,
+    14,
+    10,
+    'normal'
+  );
 
+  c.font = `normal ${subtitleSize}px Arial, sans-serif`;
   c.fillStyle = '#796f68';
-  c.fillText(subtitle, centerX, 128);
+  c.fillText(subtitle, centerX, 128, maxWidth);
 
   c.textAlign = 'left';
 
@@ -383,22 +413,34 @@ function drawBill(bill) {
   c.textAlign = 'left';
   y += 35;
 
-  // Customer name in capital letters
-  const customer = (bill.customer || 'Walk-in Customer').toUpperCase();
+  // Customer name
+  const customer = (
+    bill.customer || 'Walk-in Customer'
+  ).toUpperCase();
+
   const billToText = 'BILL TO: ' + customer;
 
-  fitText(c, billToText, 520, 15, 10, 'normal');
+  const customerSize = fitText(
+    c,
+    billToText,
+    520,
+    15,
+    10,
+    'normal'
+  );
 
+  c.font = `normal ${customerSize}px Arial, sans-serif`;
   c.fillStyle = '#796f68';
   c.textAlign = 'left';
-  c.fillText(billToText, pad, y);
+  c.fillText(billToText, pad, y, 520);
 
-  // Date aligned to the right
+  // Date
   c.textAlign = 'right';
   c.font = '15px Arial';
 
   c.fillText(
-    'Date: ' + new Date(bill.date + 'T00:00:00').toLocaleDateString('en-IN'),
+    'Date: ' +
+      new Date(bill.date + 'T00:00:00').toLocaleDateString('en-IN'),
     w - pad,
     y
   );
@@ -406,7 +448,7 @@ function drawBill(bill) {
   c.textAlign = 'left';
   y += 40;
 
-  // Divider below invoice details
+  // Divider
   c.strokeStyle = '#eadfd4';
   c.lineWidth = 1;
   c.beginPath();
@@ -424,11 +466,19 @@ function drawBill(bill) {
   if (address) {
     y += 25;
 
-    fitText(c, address, maxWidth, 13, 9, 'normal');
+    const addressSize = fitText(
+      c,
+      address,
+      maxWidth,
+      13,
+      9,
+      'normal'
+    );
 
+    c.font = `normal ${addressSize}px Arial, sans-serif`;
     c.fillStyle = '#796f68';
     c.textAlign = 'left';
-    c.fillText(address, pad, y);
+    c.fillText(address, pad, y, maxWidth);
   }
 
 
@@ -465,7 +515,11 @@ function drawBill(bill) {
     c.font = '15px Arial';
     c.textAlign = 'left';
 
-    c.fillText(String(it.name).slice(0, 38), pad + 12, y + 29);
+    c.fillText(
+      String(it.name).slice(0, 38),
+      pad + 12,
+      y + 29
+    );
 
     c.textAlign = 'right';
 
@@ -502,13 +556,11 @@ function drawBill(bill) {
   c.textAlign = 'left';
   c.fillStyle = '#796f68';
   c.font = 'bold 18px Arial';
-
   c.fillText('GRAND TOTAL', w - 350, y);
 
   c.textAlign = 'right';
   c.fillStyle = '#6b2d20';
   c.font = 'bold 26px Georgia';
-
   c.fillText(money(bill.total), w - pad, y);
 
   c.textAlign = 'left';
@@ -538,7 +590,7 @@ function drawBill(bill) {
   c.fillStyle = '#351b18';
   c.font = 'bold 21px Georgia';
 
-  c.fillText('Thank you for your business!', w / 2, y);
+  c.fillText('Thank you for your business!', centerX, y);
 
   c.fillStyle = '#796f68';
   c.font = '13px Arial';
@@ -547,7 +599,7 @@ function drawBill(bill) {
     state.businessPhone
       ? 'Contact: ' + state.businessPhone
       : 'Idhayam Candles',
-    w / 2,
+    centerX,
     y + 26
   );
 
@@ -558,6 +610,7 @@ function drawBill(bill) {
 
   return canvas;
 }
+
 
 
 // --------------------------------------------------
