@@ -341,19 +341,23 @@ function drawBill(bill) {
   // CENTERED BUSINESS HEADER
   // ----------------------------------------------
 
+  // Tamil devotional heading - centered using the loaded Tamil font
+  const tamilText = 'ஸ்ரீ பச்சை பெருமாள் ஐய்யனார் துணை';
+
+  c.font = '20px "Noto Sans Tamil", "Latha", "Nirmala UI", sans-serif';
+  c.fillStyle = '#6b2d20';
   c.textAlign = 'center';
   c.textBaseline = 'alphabetic';
 
-// Tamil devotional heading - Responsive center alignment
-const tamilText = 'ஸ்ரீ பச்சை பெருமாள் ஐய்யனார் துணை';
+  // Center the visible glyph bounds, not only the font's advance width.
+  const tamilMetrics = c.measureText(tamilText);
+  const tamilInkOffset =
+    Number.isFinite(tamilMetrics.actualBoundingBoxLeft) &&
+    Number.isFinite(tamilMetrics.actualBoundingBoxRight)
+      ? (tamilMetrics.actualBoundingBoxLeft - tamilMetrics.actualBoundingBoxRight) / 2
+      : 0;
 
-c.font = '20px "Noto Sans Tamil", "Latha", "Nirmala UI", sans-serif';
-c.fillStyle = '#6b2d20';
-c.textAlign = 'center';
-c.textBaseline = 'middle';
-
-// Exact canvas center alignment
-c.fillText(tamilText, w / 2, 55, maxWidth);
+  c.fillText(tamilText, centerX + tamilInkOffset, 55, maxWidth);
 
   // Business name
   const businessName = state.businessName || 'Idhayam Candles';
@@ -635,9 +639,14 @@ async function generateBill() {
     return;
   }
 
-  // Wait for available browser fonts before drawing
-  if (document.fonts?.ready) {
-    await document.fonts.ready;
+  // Load the Tamil font before drawing so mobile browsers do not use a fallback font.
+  if (document.fonts) {
+    try {
+      await document.fonts.load('20px "Noto Sans Tamil"');
+      await document.fonts.ready;
+    } catch (error) {
+      console.warn('Tamil font could not be loaded; using the browser fallback.', error);
+    }
   }
 
   const canvas = drawBill(bill);
