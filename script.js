@@ -1,11 +1,10 @@
-
 const STORE = 'idhayamBilling_v1';
 
 const sampleProducts = [
   ...document.getElementById('defaultProducts').content.querySelectorAll('[data-product-name]')
 ].map(el => ({
-  type: el.dataset.productType || el.dataset.productName,
   name: el.dataset.productName,
+  alias: el.dataset.alias || '',
   price: Number(el.dataset.defaultPrice) || 0
 }));
 
@@ -40,8 +39,8 @@ function loadState() {
       ...defaults,
       ...saved,
       products: products.map(p => ({
-        type: String(p.type || p.category || p.name || 'Other'),
         name: String(p.name || 'Product'),
+        alias: String(p.alias || ''),
         price: Number(p.price) || 0
       }))
     };
@@ -110,32 +109,33 @@ function esc(s) {
 
 
 // --------------------------------------------------
-// PRODUCT MANAGEMENT
+// PRODUCT SEARCH (name + alias)
 // --------------------------------------------------
 
-function productTypes() {
-  return [...new Set(state.products.map(p => p.type).filter(Boolean))];
+function normalize(s) {
+  return String(s || '').toLowerCase().trim();
 }
 
-function typeOptions(selected = '') {
-  return productTypes().map(t =>
-    `<option value="${esc(t)}" ${t === selected ? 'selected' : ''}>${esc(t)}</option>`
-  ).join('');
+function productMatches(product, query) {
+  if (!query) return true;
+  const q = normalize(query);
+  const name = normalize(product.name);
+  const alias = normalize(product.alias);
+  return name.includes(q) || alias.includes(q);
 }
 
-function productsForType(type) {
+function filterProducts(query) {
   return state.products
     .map((p, i) => ({ ...p, index: i }))
-    .filter(p => p.type === type);
+    .filter(p => productMatches(p, query));
 }
 
-function productOptions(type, selectedIndex = null) {
-  return productsForType(type).map(p =>
-    `<option value="${p.index}" ${p.index === selectedIndex ? 'selected' : ''}>${esc(p.name)}</option>`
-  ).join('');
-}
 
-function addItem(typeValue = null, productIndex = null) {
+// --------------------------------------------------
+// PRODUCT PICKER (searchable dropdown with alias)
+// --------------------------------------------------
+
+function addItem(productIndex = null) {
   if (!state.products.length) {
     toast('Add products in Products & settings first.');
     return;
@@ -144,65 +144,101 @@ function addItem(typeValue = null, productIndex = null) {
   const row = document.createElement('div');
   row.className = 'item-row';
 
-  const firstType = typeValue || state.products[0].type;
-  const options = productsForType(firstType);
+  const idx = productIndex !== null && state.products[productIndex]
+    ? productIndex
+    : 0;
 
-  const firstProduct =
-    productIndex !== null && state.products[productIndex]?.type === firstType
-      ? productIndex
-      : (options[0]?.index ?? 0);
+  const product = state.products[idx];
 
   row.innerHTML = `
-    <label>Product type
-      <select class="product-type">${typeOptions(firstType)}</select>
+    <label class="product-picker-wrap field-product">Product
+      <div class="product-picker">
+        <input class="product-search" type="text" autocomplete="off"
+          placeholder="Search name or alias…"
+          value="${esc(product?.name || '')}"
+          data-index="${idx}">
+        <div class="product-dropdown" hidden></div>
+      </div>
     </label>
 
-    <label>Product
-      <select class="product-select">${productOptions(firstType, firstProduct)}</select>
-    </label>
-
-    <label>Unit
+    <label class="field-unit">Unit
       <select class="qty-type">
         <option value="pcs">Pieces</option>
         <option value="case">Case (30 Pieces)</option>
       </select>
     </label>
 
-    <label>Quantity
+    <label class="field-qty">Quantity
       <input class="qty" type="number" min="1" step="1" value="1">
     </label>
 
-    <label>Rate / Piece (₹)
+    <label class="field-rate">Rate / Piece (₹)
       <input class="rate" type="number" min="0" step="0.01"
-        value="${Number(state.products[firstProduct]?.price || 0)}">
+        value="${Number(product?.price || 0)}">
     </label>
 
-    <div class="amount">₹0.00</div>
-    <button class="remove-btn" type="button" title="Remove item">×</button>
+    <div class="amount field-amount">₹0.00</div>
+    <button class="remove-btn field-remove" type="button" title="Remove item">×</button>
   `;
 
   $('items').appendChild(row);
 
-  const typeSelect = row.querySelector('.product-type');
-  const productSelect = row.querySelector('.product-select');
+  const searchInput = row.querySelector('.product-search');
+  const dropdown = row.querySelector('.product-dropdown');
+  const rateInput = row.querySelector('.rate');
 
-  typeSelect.addEventListener('change', () => {
-    const matching = productsForType(typeSelect.value);
+  function renderDropdown(query) {
+    const matches = filterProducts(query);
+    if (!matches.length) {
+      dropdown.innerHTML = '<div class="product-option empty">No match</div>';
+      dropdown.hidden = false;
+      return;
+    }
+    dropdown.innerHTML = matches.map(p => `
+      <button type="button" class="product-option" data-index="${p.index}">
+        <span class="pname">${esc(p.name)}</span>
+        ${p.alias ? `<span class="palias">${esc(p.alias)}</span>` : ''}
+      </button>
+    `).join('');
+    dropdown.hidden = false;
 
-    productSelect.innerHTML = productOptions(
-      typeSelect.value,
-      matching[0]?.index ?? null
-    );
+    dropdown.querySelectorAll('.product-option[data-index]').forEach(btn => {
+      btn.addEventListener('mousedown', e => {
+        e.preventDefault();
+        const i = Number(btn.dataset.index);
+        selectProduct(i);
+      });
+    });
+  }
 
-    row.querySelector('.rate').value = matching[0]?.price || 0;
+  function selectProduct(i) {
+    const p = state.products[i];
+    if (!p) return;
+    searchInput.value = p.name;
+    searchInput.dataset.index = String(i);
+    rateInput.value = Number(p.price) || 0;
+    dropdown.hidden = true;
     calculate();
+  }
+
+  searchInput.addEventListener('focus', () => {
+    renderDropdown(searchInput.value);
   });
 
-  productSelect.addEventListener('change', () => {
-    row.querySelector('.rate').value =
-      state.products[Number(productSelect.value)]?.price || 0;
+  searchInput.addEventListener('input', () => {
+    searchInput.dataset.index = '';
+    renderDropdown(searchInput.value);
+  });
 
-    calculate();
+  searchInput.addEventListener('blur', () => {
+    setTimeout(() => { dropdown.hidden = true; }, 150);
+  });
+
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      dropdown.hidden = true;
+      searchInput.blur();
+    }
   });
 
   row.querySelectorAll('input, select').forEach(x =>
@@ -246,15 +282,17 @@ function calculate() {
 
 function getBill() {
   const items = [...document.querySelectorAll('.item-row')].map(r => {
-    const p = state.products[Number(r.querySelector('.product-select').value)];
+    const search = r.querySelector('.product-search');
+    const idx = search.dataset.index !== '' ? Number(search.dataset.index) : -1;
+    const p = idx >= 0 ? state.products[idx] : null;
+    const name = p?.name || search.value.trim() || 'Product';
     const qty = Number(r.querySelector('.qty').value) || 0;
     const qtyType = r.querySelector('.qty-type').value;
     const pieces = qty * (qtyType === 'case' ? 30 : 1);
     const rate = Number(r.querySelector('.rate').value) || 0;
 
     return {
-      type: p?.type || '',
-      name: p?.name || 'Product',
+      name,
       qty,
       qtyType,
       pieces,
@@ -295,7 +333,6 @@ function fitText(ctx, text, maxWidth, startSize, minSize, fontWeight = 'bold') {
 }
 
 
-
 // --------------------------------------------------
 // GENERATE BILL IMAGE
 // --------------------------------------------------
@@ -306,10 +343,7 @@ function drawBill(bill) {
   const pad = 58;
   const lineH = 56;
 
-  // Product table position
   const tableY = 300;
-
-  // Dynamic canvas height
   const footerSpace = 245;
   const h =
     tableY +
@@ -326,45 +360,29 @@ function drawBill(bill) {
 
   const centerX = w / 2;
   const maxWidth = w - (pad * 2);
-  const tamilFont = '"Noto Sans Tamil", "Latha", "Nirmala UI", sans-serif';
 
-  // Background
   c.fillStyle = '#fffdfa';
   c.fillRect(0, 0, w, h);
 
-  // Top border
   c.fillStyle = '#6b2d20';
   c.fillRect(0, 0, w, 14);
-
-
-  // ----------------------------------------------
-  // CENTERED BUSINESS HEADER
-  // ----------------------------------------------
 
   c.textAlign = 'center';
   c.textBaseline = 'alphabetic';
 
-// Tamil devotional heading - Mobile & Desktop center alignment
-const tamilText = 'ஸ்ரீ பச்சை பெருமாள் ஐய்யனார் துணை';
+  const tamilText = 'ஸ்ரீ பச்சை பெருமாள் ஐய்யனார் துணை';
 
-c.font = '20px "Noto Sans Tamil", "Latha", "Nirmala UI", sans-serif';
-c.fillStyle = '#6b2d20';
-c.textAlign = 'left';
-c.textBaseline = 'alphabetic';
+  c.font = '20px "Noto Sans Tamil", "Latha", "Nirmala UI", sans-serif';
+  c.fillStyle = '#6b2d20';
+  c.textAlign = 'left';
+  c.textBaseline = 'alphabetic';
 
-// Measure actual rendered text width
-const tamilWidth = c.measureText(tamilText).width;
+  const tamilWidth = c.measureText(tamilText).width;
+  const tamilX = (w - tamilWidth) / 2;
+  c.fillText(tamilText, tamilX, 55);
 
-// Calculate exact horizontal center
-const tamilX = (w - tamilWidth) / 2;
-
-// Draw heading
-c.fillText(tamilText, tamilX, 55);
-
-  // Reset alignment so the business name and subtitle are centered too.
   c.textAlign = 'center';
 
-  // Business name
   const businessName = state.businessName || 'Idhayam Candles';
 
   const businessSize = fitText(
@@ -380,7 +398,6 @@ c.fillText(tamilText, tamilX, 55);
   c.fillStyle = '#351b18';
   c.fillText(businessName, centerX, 100, maxWidth);
 
-  // Business subtitle
   const subtitle = 'MANUFACTURING  •  WHOLESALE';
 
   const subtitleSize = fitText(
@@ -398,11 +415,6 @@ c.fillText(tamilText, tamilX, 55);
 
   c.textAlign = 'left';
 
-
-  // ----------------------------------------------
-  // INVOICE DETAILS
-  // ----------------------------------------------
-
   let y = 170;
 
   c.fillStyle = '#351b18';
@@ -417,7 +429,6 @@ c.fillText(tamilText, tamilX, 55);
   c.textAlign = 'left';
   y += 35;
 
-  // Customer name
   const customer = (
     bill.customer || 'Walk-in Customer'
   ).toUpperCase();
@@ -438,7 +449,6 @@ c.fillText(tamilText, tamilX, 55);
   c.textAlign = 'left';
   c.fillText(billToText, pad, y, 520);
 
-  // Date
   c.textAlign = 'right';
   c.font = '15px Arial';
 
@@ -452,18 +462,12 @@ c.fillText(tamilText, tamilX, 55);
   c.textAlign = 'left';
   y += 40;
 
-  // Divider
   c.strokeStyle = '#eadfd4';
   c.lineWidth = 1;
   c.beginPath();
   c.moveTo(pad, y);
   c.lineTo(w - pad, y);
   c.stroke();
-
-
-  // ----------------------------------------------
-  // BUSINESS ADDRESS
-  // ----------------------------------------------
 
   const address = String(state.businessAddress || '').trim();
 
@@ -485,11 +489,6 @@ c.fillText(tamilText, tamilX, 55);
     c.fillText(address, pad, y, maxWidth);
   }
 
-
-  // ----------------------------------------------
-  // PRODUCT TABLE
-  // ----------------------------------------------
-
   y = tableY;
 
   c.fillStyle = '#f5eee6';
@@ -508,11 +507,6 @@ c.fillText(tamilText, tamilX, 55);
 
   c.textAlign = 'left';
   y += 42;
-
-
-  // ----------------------------------------------
-  // PRODUCT ROWS
-  // ----------------------------------------------
 
   bill.items.forEach(it => {
     c.fillStyle = '#2c2420';
@@ -540,7 +534,6 @@ c.fillText(tamilText, tamilX, 55);
     c.font = 'bold 15px Arial';
     c.fillText(money(it.amount), w - pad - 12, y + 29);
 
-    // Row divider
     c.strokeStyle = '#eee6df';
     c.beginPath();
     c.moveTo(pad, y + lineH);
@@ -550,32 +543,19 @@ c.fillText(tamilText, tamilX, 55);
     y += lineH;
   });
 
+  y += 28;
 
-  // ----------------------------------------------
-  // GRAND TOTAL
-  // ----------------------------------------------
-
-  y += 35;
-
+  c.fillStyle = '#351b18';
+  c.font = 'bold 20px Georgia';
   c.textAlign = 'left';
-  c.fillStyle = '#796f68';
-  c.font = 'bold 18px Arial';
-  c.fillText('GRAND TOTAL', w - 350, y);
+  c.fillText('TOTAL', pad, y + 8);
 
   c.textAlign = 'right';
+  c.font = 'bold 24px Arial';
   c.fillStyle = '#6b2d20';
-  c.font = 'bold 26px Georgia';
-  c.fillText(money(bill.total), w - pad, y);
+  c.fillText(money(bill.total), w - pad, y + 8);
 
-  c.textAlign = 'left';
-  y += 55;
-
-
-  // ----------------------------------------------
-  // FOOTER DIVIDER
-  // ----------------------------------------------
-
-  y += 45;
+  y += 50;
 
   c.strokeStyle = '#eadfd4';
   c.beginPath();
@@ -583,227 +563,159 @@ c.fillText(tamilText, tamilX, 55);
   c.lineTo(w - pad, y);
   c.stroke();
 
-
-  // ----------------------------------------------
-  // FOOTER
-  // ----------------------------------------------
-
-  y += 45;
+  y += 36;
 
   c.textAlign = 'center';
-  c.fillStyle = '#351b18';
-  c.font = 'bold 21px Georgia';
-
-  c.fillText('Thank you for your business!', centerX, y);
-
   c.fillStyle = '#796f68';
   c.font = '13px Arial';
+  c.fillText('Thank you for your business', centerX, y);
 
-  c.fillText(
-    state.businessPhone
-      ? 'Contact: ' + state.businessPhone
-      : 'Idhayam Candles',
-    centerX,
-    y + 26
-  );
+  if (state.businessPhone) {
+    y += 22;
+    c.fillText('Phone: ' + state.businessPhone, centerX, y);
+  }
 
-  // Bottom border
-  c.textAlign = 'left';
-  c.fillStyle = '#6b2d20';
-  c.fillRect(0, h - 12, w, 12);
+  y += 28;
+  c.fillStyle = '#b5a89c';
+  c.font = '11px Arial';
+  c.fillText('Non-GST invoice • Generated by Idhayam Candles billing', centerX, y);
 
   return canvas;
 }
-
-
-
-// --------------------------------------------------
-// CANVAS TO PNG
-// --------------------------------------------------
-
-async function canvasBlob(canvas) {
-  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-}
-
-
-// --------------------------------------------------
-// GENERATE BILL
-// --------------------------------------------------
 
 async function generateBill() {
   const bill = getBill();
 
   if (!bill.items.length) {
-    toast('Add at least one product and quantity.');
+    toast('Add at least one product with quantity.');
     return;
-  }
-
-  if (!bill.customer) {
-    toast('Please enter the customer name.');
-    $('customerName').focus();
-    return;
-  }
-
-  // Load Tamil font before drawing, then wait for all fonts to be ready.
-  if (document.fonts) {
-    try {
-      await document.fonts.load('20px "Noto Sans Tamil"');
-      await document.fonts.ready;
-    } catch (error) {
-      console.warn('Tamil font could not be loaded; using browser fallback.', error);
-    }
   }
 
   const canvas = drawBill(bill);
+  const blob = await new Promise(resolve =>
+    canvas.toBlob(resolve, 'image/png')
+  );
 
-  lastImageBlob = await canvasBlob(canvas);
-  lastImageName = bill.invoice + '.png';
+  lastImageBlob = blob;
+  lastImageName = `${bill.invoice}.png`;
 
-  $('billPreview').src = URL.createObjectURL(lastImageBlob);
+  const url = URL.createObjectURL(blob);
+  $('billPreview').src = url;
   $('outputPanel').hidden = false;
 
   state.history.unshift({
     ...bill,
-    createdAt: new Date().toISOString()
+    createdAt: Date.now()
   });
 
-  state.nextInvoice++;
+  if (state.history.length > 50) {
+    state.history = state.history.slice(0, 50);
+  }
 
+  state.nextInvoice += 1;
   saveState();
+  refreshInvoice();
   renderHistory();
   updateStats();
 
-  $('outputPanel').scrollIntoView({
-    behavior: 'smooth',
-    block: 'start'
-  });
-
-  toast('Bill image generated and bill saved on this device.');
+  toast('Bill image ready.');
+  $('outputPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
-
-
-// --------------------------------------------------
-// WHATSAPP SHARE
-// --------------------------------------------------
 
 async function shareBill() {
   if (!lastImageBlob) {
-    toast('Generate a bill image first.');
+    toast('Generate a bill first.');
     return;
   }
 
-  const file = new File(
-    [lastImageBlob],
-    lastImageName,
-    { type: 'image/png' }
-  );
+  const file = new File([lastImageBlob], lastImageName, { type: 'image/png' });
 
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+  if (navigator.share && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({
         files: [file],
-        title: 'Idhayam Candles bill',
-        text: 'Invoice from Idhayam Candles'
+        title: 'Invoice',
+        text: 'Idhayam Candles invoice'
       });
-
       return;
-    } catch (e) {
-      if (e.name === 'AbortError') return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
     }
   }
 
   downloadBill();
-
-  window.open(
-    'https://wa.me/?text=' + encodeURIComponent(
-      'Hello, please find your Idhayam Candles bill attached.'
-    ),
-    '_blank',
-    'noopener'
-  );
-
-  $('shareHint').textContent =
-    'Your PNG was downloaded. In WhatsApp, choose the customer chat and attach the downloaded image.';
-
-  toast('Image downloaded. Attach it in WhatsApp.');
 }
 
 function downloadBill() {
-  if (!lastImageBlob) return;
-
-  const a = document.createElement('a');
-  const url = URL.createObjectURL(lastImageBlob);
-
-  a.href = url;
-  a.download = lastImageName;
-  a.click();
-
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-}
-
-
-// --------------------------------------------------
-// BILL HISTORY
-// --------------------------------------------------
-
-function renderHistory() {
-  const h = $('history');
-
-  $('historyCount').textContent = state.history.length + ' bills';
-
-  if (!state.history.length) {
-    h.innerHTML = '<p class="empty">No bills yet. Your completed bills will appear here.</p>';
+  if (!lastImageBlob) {
+    toast('Generate a bill first.');
     return;
   }
 
-  h.innerHTML = state.history.slice(0, 50).map((b, i) => `
-    <div class="history-item">
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(lastImageBlob);
+  a.download = lastImageName || 'invoice.png';
+  a.click();
+}
+
+
+// --------------------------------------------------
+// HISTORY
+// --------------------------------------------------
+
+function renderHistory() {
+  const list = $('history');
+  const bills = state.history || [];
+
+  $('historyCount').textContent = bills.length + (bills.length === 1 ? ' bill' : ' bills');
+
+  if (!bills.length) {
+    list.innerHTML = '<p class="empty">No bills yet. Your completed bills will appear here.</p>';
+    return;
+  }
+
+  list.innerHTML = bills.slice(0, 12).map((b, i) => `
+    <button type="button" class="history-item" data-history="${i}">
       <div>
-        <b>${esc(b.invoice)} · ${esc(b.customer)}</b>
-        <small>
-          ${new Date(b.date + 'T00:00:00').toLocaleDateString('en-IN')}
-          · ${b.items.length} item(s)
-        </small>
-        <br>
-        <button data-rebill="${i}">Load bill</button>
+        <strong>${esc(b.invoice)}</strong>
+        <span>${esc(b.customer || 'Walk-in')} · ${esc(b.date)}</span>
       </div>
-      <strong>${money(b.total)}</strong>
-    </div>
+      <b>${money(b.total)}</b>
+    </button>
   `).join('');
 
-  h.querySelectorAll('[data-rebill]').forEach(btn =>
+  list.querySelectorAll('[data-history]').forEach(btn => {
     btn.addEventListener('click', () => {
-      loadHistoryBill(Number(btn.dataset.rebill));
-    })
-  );
+      loadHistoryBill(Number(btn.dataset.history));
+    });
+  });
 }
 
 function loadHistoryBill(i) {
-  const b = state.history[i];
-  if (!b) return;
+  const bill = state.history[i];
+  if (!bill) return;
 
-  $('customerName').value = b.customer;
-  $('billDate').value = b.date;
-  $('invoiceNo').value = b.invoice;
+  $('customerName').value = bill.customer || '';
+  $('billDate').value = bill.date || dateISO();
+  refreshInvoice();
+
   $('items').innerHTML = '';
 
-  b.items.forEach(it => {
+  (bill.items || []).forEach(it => {
     let idx = state.products.findIndex(p => p.name === it.name);
-
     if (idx < 0) {
       state.products.push({
-        type: it.type || 'Other',
         name: it.name,
+        alias: '',
         price: it.rate
       });
-
       idx = state.products.length - 1;
+      saveState();
     }
 
-    addItem(state.products[idx].type, idx);
+    addItem(idx);
 
     const r = $('items').lastElementChild;
-
     r.querySelector('.qty').value = it.qty;
     r.querySelector('.qty-type').value = it.qtyType || 'pcs';
     r.querySelector('.rate').value = it.rate;
@@ -848,11 +760,11 @@ function renderProductEditor() {
 
   el.innerHTML = state.products.map((p, i) => `
     <div class="product-edit-row">
-      <input aria-label="Product type" class="ptype"
-        value="${esc(p.type)}" maxlength="60" placeholder="Product type">
-
       <input aria-label="Product name" class="pname"
         value="${esc(p.name)}" maxlength="60" placeholder="Product name">
+
+      <input aria-label="Search alias" class="palias"
+        value="${esc(p.alias || '')}" maxlength="80" placeholder="Alias (e.g. avatra)">
 
       <input aria-label="Default price" class="pprice"
         type="number" min="0" step="0.01" value="${Number(p.price) || 0}">
@@ -875,11 +787,11 @@ function addProductEditorRow() {
   row.className = 'product-edit-row';
 
   row.innerHTML = `
-    <input class="ptype" aria-label="Product type"
-      placeholder="Product type" maxlength="60">
-
     <input class="pname" aria-label="Product name"
       placeholder="Product name" maxlength="60">
+
+    <input class="palias" aria-label="Search alias"
+      placeholder="Alias (e.g. avatra)" maxlength="80">
 
     <input class="pprice" aria-label="Default price"
       type="number" min="0" step="0.01" value="0">
@@ -888,18 +800,17 @@ function addProductEditorRow() {
   `;
 
   row.querySelector('button').addEventListener('click', () => row.remove());
-
   $('productEditor').appendChild(row);
 }
 
 function saveSettings() {
-  const types = [...$('productEditor').querySelectorAll('.ptype')];
-  const names = [...$('productEditor').querySelectorAll('.pname')];
-  const prices = [...$('productEditor').querySelectorAll('.pprice')];
+  const names = [...document.querySelectorAll('#productEditor .pname')];
+  const aliases = [...document.querySelectorAll('#productEditor .palias')];
+  const prices = [...document.querySelectorAll('#productEditor .pprice')];
 
   const products = names.map((n, i) => ({
-    type: types[i].value.trim() || 'Other',
     name: n.value.trim(),
+    alias: (aliases[i]?.value || '').trim(),
     price: Math.max(0, Number(prices[i].value) || 0)
   })).filter(p => p.name);
 
@@ -979,6 +890,7 @@ function init() {
 
   $('saveSettingsBtn').addEventListener('click', saveSettings);
   $('addProductBtn').addEventListener('click', addProductEditorRow);
+  $('closeSettingsBtn')?.addEventListener('click', () => $('settingsDialog').close());
 
   $('resetProductsBtn').addEventListener('click', () => {
     if (confirm('Restore the sample product list? This replaces your current product list.')) {
