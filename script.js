@@ -341,23 +341,28 @@ function drawBill(bill) {
   // CENTERED BUSINESS HEADER
   // ----------------------------------------------
 
-  // Tamil devotional heading - centered using the loaded Tamil font
-  const tamilText = 'ஸ்ரீ பச்சை பெருமாள் ஐய்யனார் துணை';
-
-  c.font = '20px "Noto Sans Tamil", "Latha", "Nirmala UI", sans-serif';
-  c.fillStyle = '#6b2d20';
   c.textAlign = 'center';
   c.textBaseline = 'alphabetic';
 
-  // Center the visible glyph bounds, not only the font's advance width.
-  const tamilMetrics = c.measureText(tamilText);
-  const tamilInkOffset =
-    Number.isFinite(tamilMetrics.actualBoundingBoxLeft) &&
-    Number.isFinite(tamilMetrics.actualBoundingBoxRight)
-      ? (tamilMetrics.actualBoundingBoxLeft - tamilMetrics.actualBoundingBoxRight) / 2
-      : 0;
+// Tamil devotional heading - Mobile & Desktop center alignment
+const tamilText = 'ஸ்ரீ பச்சை பெருமாள் ஐய்யனார் துணை';
 
-  c.fillText(tamilText, centerX + tamilInkOffset, 55, maxWidth);
+c.font = '20px "Noto Sans Tamil", "Latha", "Nirmala UI", sans-serif';
+c.fillStyle = '#6b2d20';
+c.textAlign = 'left';
+c.textBaseline = 'alphabetic';
+
+// Measure actual rendered text width
+const tamilWidth = c.measureText(tamilText).width;
+
+// Calculate exact horizontal center
+const tamilX = (w - tamilWidth) / 2;
+
+// Draw heading
+c.fillText(tamilText, tamilX, 55);
+
+  // Reset alignment so the business name and subtitle are centered too.
+  c.textAlign = 'center';
 
   // Business name
   const businessName = state.businessName || 'Idhayam Candles';
@@ -639,13 +644,13 @@ async function generateBill() {
     return;
   }
 
-  // Load the Tamil font before drawing so mobile browsers do not use a fallback font.
+  // Load Tamil font before drawing, then wait for all fonts to be ready.
   if (document.fonts) {
     try {
       await document.fonts.load('20px "Noto Sans Tamil"');
       await document.fonts.ready;
     } catch (error) {
-      console.warn('Tamil font could not be loaded; using the browser fallback.', error);
+      console.warn('Tamil font could not be loaded; using browser fallback.', error);
     }
   }
 
