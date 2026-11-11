@@ -345,7 +345,7 @@ function drawBill(bill) {
   c.textBaseline = 'alphabetic';
 
   // Tamil devotional heading
-  const tamilText = 'ஸ்ரீ பச்சை பெருமாள் ஐய்யனார் துணை';
+  const tamilText = '- ஸ்ரீ பச்சை பெருமாள் ஐய்யனார் துணை -';
 
   const tamilSize = fitText(
     c,
