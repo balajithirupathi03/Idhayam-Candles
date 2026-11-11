@@ -41,7 +41,7 @@
           <div class="grand"><span>Grand total</span><strong id="grandTotal">₹0.00</strong></div>
         </div>
         <div class="actions"><button class="btn primary" id="generateBtn">Generate bill image</button><button class="btn soft" id="clearBtn">Clear bill</button></div>
-        <p class="hint">Product prices start with your saved default price. You can change the rate for any individual bill.</p>
+        <p class="hint">Type product name or alias (e.g. avatra for அவதார்). Prices start with your saved default; you can change the rate per bill.</p>
       </section>
       <aside class="panel side-panel">
         <div class="panel-head">
@@ -51,66 +51,85 @@
           </div><button class="text-btn" id="refreshHistory">Refresh</button>
         </div>
         <div class="history-summary"><span>Saved on this device</span><b id="historyCount">0 bills</b></div>
-        <div id="history" class="history"><p class="empty">No bills yet. Your completed bills will appear here.</p></div>
-        <button class="btn danger-outline" id="clearHistoryBtn">Clear all bill history</button>
+        <div id="history" class="history"></div>
+        <button class="btn soft danger-outline" id="clearHistoryBtn">Clear all bill history</button>
       </aside>
     </div>
-    <section class="panel output-panel" id="outputPanel" hidden>
+  </main>
+
+  <section id="outputPanel" class="output-panel" hidden>
+    <div class="panel">
       <div class="panel-head">
         <div>
           <p class="eyebrow">READY TO SHARE</p>
-          <h2>Your bill image</h2>
-        </div><span class="pill success">PNG created</span>
-      </div>
-      <div class="preview-wrap"><img id="billPreview" alt="Generated bill preview"></div>
-      <div class="actions"><button class="btn primary" id="shareBtn">Share image on WhatsApp</button><button class="btn soft" id="downloadBtn">Download PNG</button></div>
-      <p class="hint" id="shareHint">On supported phones/browsers, Share opens the system share sheet. Choose WhatsApp and select the customer.</p>
-    </section>
-  </main>
-  <dialog id="settingsDialog">
-    <form method="dialog" class="dialog-card">
-      <div class="panel-head">
-        <div><p class="eyebrow">SETUP</p><h2>Business & products</h2></div>
-        <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
-      </div>
-      <label>Business name<input id="businessName" maxlength="60"></label>
-      <label>Business phone<input id="businessPhone" placeholder="Optional"></label>
-      <label>Business address<input id="businessAddress" placeholder="Optional"></label>
-      <div class="items-head">
-        <div>
-          <h3>Product list</h3>
-          <p class="hint">Add a product type, product name, and default selling price. The bill product dropdown filters by type.</p>
+          <h2>Bill image</h2>
         </div>
-        <button type="button" class="text-btn" id="addProductBtn">＋ Add product</button>
       </div>
-      <div id="productEditor"></div>
-      <div class="dialog-actions"><button type="button" class="btn soft" id="resetProductsBtn">Restore sample products</button><button type="button" class="btn primary" id="saveSettingsBtn">Save settings</button></div>
+      <div class="preview-wrap"><img id="billPreview" alt="Bill preview"></div>
+      <div class="actions">
+        <button class="btn primary" id="shareBtn">Share</button>
+        <button class="btn soft" id="downloadBtn">Download</button>
+      </div>
+    </div>
+  </section>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" id="settingsForm" class="dialog-card settings-form">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">SETUP</p>
+          <h2>Business & products</h2>
+        </div>
+        <button type="button" class="icon-btn" id="closeSettingsBtn" aria-label="Close">✕</button>
+      </div>
+
+      <div class="settings-grid">
+        <label>Business name<input id="businessName" maxlength="80"></label>
+        <label>Phone<input id="businessPhone" maxlength="40"></label>
+        <label class="full">Address<textarea id="businessAddress" rows="2" maxlength="160"></textarea></label>
+      </div>
+
+      <div class="product-list-head">
+        <h3>Product list</h3>
+        <p class="hint">Add product name, optional English alias (for search), and default price. Type alias like “avatra” to find “அவதார்”.</p>
+      </div>
+      <div id="productEditor" class="product-editor"></div>
+      <div class="product-list-actions">
+        <button type="button" class="btn soft" id="addProductBtn">＋ Add product</button>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" class="btn soft" id="resetProductsBtn">Restore sample products</button>
+        <button type="button" class="btn primary" id="saveSettingsBtn">Save settings</button>
+      </div>
     </form>
   </dialog>
+
   <div id="toast" role="status" aria-live="polite"></div>
+
   <template id="defaultProducts">
-    <div data-product-type="கி" data-product-name="3No கிண்ணம்" data-default-price="11.50"></div>
-    <div data-product-type="கி" data-product-name="4No கிண்ணம்" data-default-price="13"></div>
-    <div data-product-type="கி" data-product-name="5No கிண்ணம்" data-default-price="15"></div>
-    <div data-product-type="கி" data-product-name="7No கிண்ணம்" data-default-price="19"></div>
-    <div data-product-type="கி" data-product-name="9No கிண்ணம்" data-default-price="24"></div>
-    <div data-product-type="கி" data-product-name="13No கிண்ணம்" data-default-price="33"></div>
-    <div data-product-type="கி" data-product-name="22No கிண்ணம்" data-default-price="37"></div>
-    <div data-product-type="கி" data-product-name="15No கிண்ணம்" data-default-price="37"></div>
-    <div data-product-type="கி" data-product-name="20No கிண்ணம்" data-default-price="47"></div>
-    <div data-product-type="கி" data-product-name="மண் சட்டி" data-default-price="47"></div>
-    <div data-product-type="கி" data-product-name="இதயம் மாடல் மண் சட்டி" data-default-price="47"></div>
-    <div data-product-type="ஃபே" data-product-name="8No ஃபேன்சி" data-default-price="15"></div>
-    <div data-product-type="ஃபே" data-product-name="10No ஃபேன்சி" data-default-price="13.50"></div>
-    <div data-product-type="ஃபே" data-product-name="12No கட்டை ஃபேன்சி" data-default-price="13"></div>
-    <div data-product-type="ஃபே" data-product-name="12No SP ஃபேன்சி" data-default-price="15"></div>
-    <div data-product-type="ஃபே" data-product-name="15No ஃபேன்சி" data-default-price="8.50"></div>
-    <div data-product-type="ஃபே" data-product-name="24No மகிழ்ச்சி ஃபேன்சி" data-default-price="32"></div>
-    <div data-product-type="ஃபே" data-product-name="ரிங் ஃபேன்சி" data-default-price="26"></div>
-    <div data-product-type="ஃபே" data-product-name="ராக்கெட் ஃபேன்சி" data-default-price="15"></div>
-    <div data-product-type="ஃபே" data-product-name="ஜெட் ஃபேன்சி" data-default-price="15"></div>
-    <div data-product-type="ஃபே" data-product-name="பாகுபலி ஃபேன்சி" data-default-price="32"></div>
-    <div data-product-type="ஃபே" data-product-name="அவதார் ஃபேன்சி" data-default-price="45"></div>
+    <div data-product-name="3No கிண்ணம்" data-alias="3no kinnam bowl" data-default-price="11.50"></div>
+    <div data-product-name="4No கிண்ணம்" data-alias="4no kinnam bowl" data-default-price="13"></div>
+    <div data-product-name="5No கிண்ணம்" data-alias="5no kinnam bowl" data-default-price="15"></div>
+    <div data-product-name="7No கிண்ணம்" data-alias="7no kinnam bowl" data-default-price="19"></div>
+    <div data-product-name="9No கிண்ணம்" data-alias="9no kinnam bowl" data-default-price="24"></div>
+    <div data-product-name="13No கிண்ணம்" data-alias="13no kinnam bowl" data-default-price="33"></div>
+    <div data-product-name="22No கிண்ணம்" data-alias="22no kinnam bowl" data-default-price="37"></div>
+    <div data-product-name="15No கிண்ணம்" data-alias="15no kinnam bowl" data-default-price="37"></div>
+    <div data-product-name="20No கிண்ணம்" data-alias="20no kinnam bowl" data-default-price="47"></div>
+    <div data-product-name="மண் சட்டி" data-alias="man chatti clay pot" data-default-price="47"></div>
+    <div data-product-name="இதயம் மாடல் மண் சட்டி" data-alias="idhayam model man chatti heart clay" data-default-price="47"></div>
+    <div data-product-name="8No ஃபேன்சி" data-alias="8no fancy" data-default-price="15"></div>
+    <div data-product-name="10No ஃபேன்சி" data-alias="10no fancy" data-default-price="13.50"></div>
+    <div data-product-name="12No கட்டை ஃபேன்சி" data-alias="12no kattai fancy" data-default-price="13"></div>
+    <div data-product-name="12No SP ஃபேன்சி" data-alias="12no sp fancy" data-default-price="15"></div>
+    <div data-product-name="15No ஃபேன்சி" data-alias="15no fancy" data-default-price="8.50"></div>
+    <div data-product-name="24No மகிழ்ச்சி ஃபேன்சி" data-alias="24no magizhchi fancy happiness" data-default-price="32"></div>
+    <div data-product-name="ரிங் ஃபேன்சி" data-alias="ring fancy" data-default-price="26"></div>
+    <div data-product-name="ராக்கெட் ஃபேன்சி" data-alias="rocket rakket fancy" data-default-price="15"></div>
+    <div data-product-name="ஜெட் ஃபேன்சி" data-alias="jet fancy" data-default-price="15"></div>
+    <div data-product-name="பாகுபலி ஃபேன்சி" data-alias="baahubali baghubali bahubali fancy" data-default-price="32"></div>
+    <div data-product-name="அவதார் ஃபேன்சி" data-alias="avatar avatra avathar fancy" data-default-price="45"></div>
   </template>
   <script src="script.js"></script>
 </body>
