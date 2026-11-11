@@ -661,3 +661,80 @@ dialog::backdrop {
         padding: 0;
     }
 }
+
+/* Mobile alignment fixes */
+@media (max-width: 700px) {
+
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .form-grid label:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .item-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+    align-items: end;
+  }
+
+  .item-row label {
+    min-width: 0;
+  }
+
+  .item-row input,
+  .item-row select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .item-row .amount {
+    text-align: left;
+  }
+
+  .item-row .remove-btn {
+    width: 100%;
+  }
+
+  .panel,
+  .output-panel,
+  .preview-wrap {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .preview-wrap img {
+    display: block;
+    width: 100%;
+    max-width: 520px;
+    height: auto;
+    margin: auto;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .actions .btn {
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .wrap {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .panel-head h2 {
+    font-size: 21px;
+  }
+}
