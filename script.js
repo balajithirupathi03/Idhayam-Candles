@@ -344,21 +344,16 @@ function drawBill(bill) {
   c.textAlign = 'center';
   c.textBaseline = 'alphabetic';
 
-  // Tamil devotional heading
-  const tamilText = '- ஸ்ரீ பச்சை பெருமாள் ஐய்யனார் துணை -';
+// Tamil devotional heading - Responsive center alignment
+const tamilText = 'ஸ்ரீ பச்சை பெருமாள் ஐய்யனார் துணை';
 
-  const tamilSize = fitText(
-    c,
-    tamilText,
-    maxWidth,
-    22,
-    12,
-    'normal'
-  );
+c.font = '20px "Noto Sans Tamil", "Latha", "Nirmala UI", sans-serif';
+c.fillStyle = '#6b2d20';
+c.textAlign = 'center';
+c.textBaseline = 'middle';
 
-  c.font = `normal ${tamilSize}px ${tamilFont}`;
-  c.fillStyle = '#6b2d20';
-  c.fillText(tamilText, centerX, 55, maxWidth);
+// Exact canvas center alignment
+c.fillText(tamilText, w / 2, 55, maxWidth);
 
   // Business name
   const businessName = state.businessName || 'Idhayam Candles';
