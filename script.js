@@ -1,145 +1,164 @@
-const STORE='idhayamBilling_v1';
 
-const sampleProducts=[
+const STORE = 'idhayamBilling_v1';
+
+const sampleProducts = [
   ...document.getElementById('defaultProducts').content.querySelectorAll('[data-product-name]')
-].map(el=>({
-  type:el.dataset.productType||el.dataset.productName,
-  name:el.dataset.productName,
-  price:Number(el.dataset.defaultPrice)||0
+].map(el => ({
+  type: el.dataset.productType || el.dataset.productName,
+  name: el.dataset.productName,
+  price: Number(el.dataset.defaultPrice) || 0
 }));
 
-const defaults={
-  businessName:'Idhayam Candles',
-  businessPhone:'',
-  businessAddress:'',
-  products:sampleProducts,
-  history:[],
-  nextInvoice:1
+const defaults = {
+  businessName: 'Idhayam Candles',
+  businessPhone: '',
+  businessAddress: '',
+  products: sampleProducts,
+  history: [],
+  nextInvoice: 1
 };
 
-const $=id=>document.getElementById(id);
+const $ = id => document.getElementById(id);
 
-let state=loadState();
-let lastImageBlob=null;
-let lastImageName='';
+let state = loadState();
+let lastImageBlob = null;
+let lastImageName = '';
 
-function loadState(){
-  try{
-    const saved=JSON.parse(localStorage.getItem(STORE)||'{}');
-    const products=Array.isArray(saved.products)?saved.products:sampleProducts;
+
+// --------------------------------------------------
+// STORAGE
+// --------------------------------------------------
+
+function loadState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE) || '{}');
+    const products = Array.isArray(saved.products)
+      ? saved.products
+      : sampleProducts;
 
     return {
       ...defaults,
       ...saved,
-      products:products.map(p=>({
-        type:String(p.type||p.category||p.name||'Other'),
-        name:String(p.name||'Product'),
-        price:Number(p.price)||0
+      products: products.map(p => ({
+        type: String(p.type || p.category || p.name || 'Other'),
+        name: String(p.name || 'Product'),
+        price: Number(p.price) || 0
       }))
     };
-  }catch{
+  } catch {
     return {
       ...defaults,
-      products:sampleProducts.map(p=>({...p}))
+      products: sampleProducts.map(p => ({ ...p }))
     };
   }
 }
 
-function saveState(){
-  localStorage.setItem(STORE,JSON.stringify(state));
+function saveState() {
+  localStorage.setItem(STORE, JSON.stringify(state));
 }
 
-function money(n){
-  return '₹'+Number(n||0).toLocaleString('en-IN',{
-    minimumFractionDigits:2,
-    maximumFractionDigits:2
+
+// --------------------------------------------------
+// COMMON HELPERS
+// --------------------------------------------------
+
+function money(n) {
+  return '₹' + Number(n || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   });
 }
 
-function dateISO(){
-  const d=new Date();
-  return new Date(d.getTime()-d.getTimezoneOffset()*60000)
-    .toISOString().slice(0,10);
+function dateISO() {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+    .toISOString().slice(0, 10);
 }
 
-function toast(msg){
-  const el=$('toast');
-  el.textContent=msg;
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
   el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'),2400);
+  setTimeout(() => el.classList.remove('show'), 2400);
 }
 
-function invoiceDatePart(date){
-  const d=new Date((date||dateISO())+'T00:00:00');
-  const day=String(d.getDate()).padStart(2,'0');
-  const month=d.toLocaleDateString('en-US',{month:'short'});
+function invoiceDatePart(date) {
+  const d = new Date((date || dateISO()) + 'T00:00:00');
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = d.toLocaleDateString('en-US', { month: 'short' });
+
   return `${day}-${month}-${d.getFullYear()}`;
 }
 
-function nextInvoice(date=$('billDate')?.value||dateISO()){
-  return `IC-${invoiceDatePart(date)}-${String(state.nextInvoice).padStart(4,'0')}`;
+function nextInvoice(date = $('billDate')?.value || dateISO()) {
+  return `IC-${invoiceDatePart(date)}-${String(state.nextInvoice).padStart(4, '0')}`;
 }
 
-function refreshInvoice(){
-  $('invoiceNo').value=nextInvoice();
+function refreshInvoice() {
+  $('invoiceNo').value = nextInvoice();
 }
 
-function esc(s){
-  return String(s??'').replace(/[&<>"']/g,c=>({
-    '&':'&amp;',
-    '<':'&lt;',
-    '>':'&gt;',
-    '"':'&quot;',
-    "'":'&#39;'
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
   }[c]));
 }
 
-function productTypes(){
-  return [...new Set(state.products.map(p=>p.type).filter(Boolean))];
+
+// --------------------------------------------------
+// PRODUCT MANAGEMENT
+// --------------------------------------------------
+
+function productTypes() {
+  return [...new Set(state.products.map(p => p.type).filter(Boolean))];
 }
 
-function typeOptions(selected=''){
-  return productTypes().map(t=>
-    `<option value="${esc(t)}" ${t===selected?'selected':''}>${esc(t)}</option>`
+function typeOptions(selected = '') {
+  return productTypes().map(t =>
+    `<option value="${esc(t)}" ${t === selected ? 'selected' : ''}>${esc(t)}</option>`
   ).join('');
 }
 
-function productsForType(type){
+function productsForType(type) {
   return state.products
-    .map((p,i)=>({...p,index:i}))
-    .filter(p=>p.type===type);
+    .map((p, i) => ({ ...p, index: i }))
+    .filter(p => p.type === type);
 }
 
-function productOptions(type,selectedIndex=null){
-  return productsForType(type).map(p=>
-    `<option value="${p.index}" ${p.index===selectedIndex?'selected':''}>${esc(p.name)}</option>`
+function productOptions(type, selectedIndex = null) {
+  return productsForType(type).map(p =>
+    `<option value="${p.index}" ${p.index === selectedIndex ? 'selected' : ''}>${esc(p.name)}</option>`
   ).join('');
 }
 
-function addItem(typeValue=null,productIndex=null){
-  if(!state.products.length){
+function addItem(typeValue = null, productIndex = null) {
+  if (!state.products.length) {
     toast('Add products in Products & settings first.');
     return;
   }
 
-  const row=document.createElement('div');
-  row.className='item-row';
+  const row = document.createElement('div');
+  row.className = 'item-row';
 
-  const firstType=typeValue||state.products[0].type;
-  const options=productsForType(firstType);
+  const firstType = typeValue || state.products[0].type;
+  const options = productsForType(firstType);
 
-  const firstProduct=
-    productIndex!==null&&state.products[productIndex]?.type===firstType
-      ?productIndex
-      :(options[0]?.index??0);
+  const firstProduct =
+    productIndex !== null && state.products[productIndex]?.type === firstType
+      ? productIndex
+      : (options[0]?.index ?? 0);
 
-  row.innerHTML=`
+  row.innerHTML = `
     <label>Product type
       <select class="product-type">${typeOptions(firstType)}</select>
     </label>
 
     <label>Product
-      <select class="product-select">${productOptions(firstType,firstProduct)}</select>
+      <select class="product-select">${productOptions(firstType, firstProduct)}</select>
     </label>
 
     <label>Unit
@@ -155,7 +174,7 @@ function addItem(typeValue=null,productIndex=null){
 
     <label>Rate / Piece (₹)
       <input class="rate" type="number" min="0" step="0.01"
-        value="${Number(state.products[firstProduct]?.price||0)}">
+        value="${Number(state.products[firstProduct]?.price || 0)}">
     </label>
 
     <div class="amount">₹0.00</div>
@@ -164,32 +183,33 @@ function addItem(typeValue=null,productIndex=null){
 
   $('items').appendChild(row);
 
-  const typeSelect=row.querySelector('.product-type');
-  const productSelect=row.querySelector('.product-select');
+  const typeSelect = row.querySelector('.product-type');
+  const productSelect = row.querySelector('.product-select');
 
-  typeSelect.addEventListener('change',()=>{
-    const matching=productsForType(typeSelect.value);
+  typeSelect.addEventListener('change', () => {
+    const matching = productsForType(typeSelect.value);
 
-    productSelect.innerHTML=productOptions(
+    productSelect.innerHTML = productOptions(
       typeSelect.value,
-      matching[0]?.index??null
+      matching[0]?.index ?? null
     );
 
-    row.querySelector('.rate').value=matching[0]?.price||0;
+    row.querySelector('.rate').value = matching[0]?.price || 0;
     calculate();
   });
 
-  productSelect.addEventListener('change',()=>{
-    row.querySelector('.rate').value=
-      state.products[Number(productSelect.value)]?.price||0;
+  productSelect.addEventListener('change', () => {
+    row.querySelector('.rate').value =
+      state.products[Number(productSelect.value)]?.price || 0;
+
     calculate();
   });
 
-  row.querySelectorAll('input,select').forEach(x=>
-    x.addEventListener('input',calculate)
+  row.querySelectorAll('input, select').forEach(x =>
+    x.addEventListener('input', calculate)
   );
 
-  row.querySelector('.remove-btn').addEventListener('click',()=>{
+  row.querySelector('.remove-btn').addEventListener('click', () => {
     row.remove();
     calculate();
   });
@@ -197,82 +217,100 @@ function addItem(typeValue=null,productIndex=null){
   calculate();
 }
 
-function calculate(){
-  let qty=0;
-  let total=0;
 
-  document.querySelectorAll('.item-row').forEach(r=>{
-    const entered=Math.max(0,Number(r.querySelector('.qty').value)||0);
-    const unit=r.querySelector('.qty-type').value;
-    const pieces=entered*(unit==='case'?30:1);
-    const rate=Math.max(0,Number(r.querySelector('.rate').value)||0);
-    const amount=pieces*rate;
+// --------------------------------------------------
+// BILL CALCULATION
+// --------------------------------------------------
 
-    qty+=pieces;
-    total+=amount;
+function calculate() {
+  let qty = 0;
+  let total = 0;
 
-    r.querySelector('.amount').textContent=money(amount);
+  document.querySelectorAll('.item-row').forEach(r => {
+    const entered = Math.max(0, Number(r.querySelector('.qty').value) || 0);
+    const unit = r.querySelector('.qty-type').value;
+    const pieces = entered * (unit === 'case' ? 30 : 1);
+    const rate = Math.max(0, Number(r.querySelector('.rate').value) || 0);
+    const amount = pieces * rate;
+
+    qty += pieces;
+    total += amount;
+
+    r.querySelector('.amount').textContent = money(amount);
   });
 
-  $('grandTotal').textContent=money(total);
+  $('grandTotal').textContent = money(total);
 
-  return {qty,total};
+  return { qty, total };
 }
 
-function getBill(){
-  const items=[...document.querySelectorAll('.item-row')].map(r=>{
-    const p=state.products[Number(r.querySelector('.product-select').value)];
-    const qty=Number(r.querySelector('.qty').value)||0;
-    const qtyType=r.querySelector('.qty-type').value;
-    const pieces=qty*(qtyType==='case'?30:1);
-    const rate=Number(r.querySelector('.rate').value)||0;
+function getBill() {
+  const items = [...document.querySelectorAll('.item-row')].map(r => {
+    const p = state.products[Number(r.querySelector('.product-select').value)];
+    const qty = Number(r.querySelector('.qty').value) || 0;
+    const qtyType = r.querySelector('.qty-type').value;
+    const pieces = qty * (qtyType === 'case' ? 30 : 1);
+    const rate = Number(r.querySelector('.rate').value) || 0;
 
     return {
-      type:p?.type||'',
-      name:p?.name||'Product',
+      type: p?.type || '',
+      name: p?.name || 'Product',
       qty,
       qtyType,
       pieces,
       rate,
-      amount:pieces*rate
+      amount: pieces * rate
     };
-  }).filter(x=>x.qty>0);
+  }).filter(x => x.qty > 0);
 
   return {
-    invoice:$('invoiceNo').value,
-    date:$('billDate').value,
-    customer:$('customerName').value.trim(),
+    invoice: $('invoiceNo').value,
+    date: $('billDate').value,
+    customer: $('customerName').value.trim(),
     items,
-    qty:items.reduce((a,x)=>a+x.pieces,0),
-    total:items.reduce((a,x)=>a+x.amount,0)
+    qty: items.reduce((a, x) => a + x.pieces, 0),
+    total: items.reduce((a, x) => a + x.amount, 0)
   };
 }
 
-function fitText(ctx,text,maxWidth,startSize,minSize,fontWeight='bold'){
-  let size=startSize;
 
-  do{
-    ctx.font=`${fontWeight} ${size}px Arial`;
+// --------------------------------------------------
+// CANVAS TEXT FITTING
+// --------------------------------------------------
 
-    if(ctx.measureText(text).width<=maxWidth||size<=minSize){
+function fitText(ctx, text, maxWidth, startSize, minSize, fontWeight = 'bold') {
+  let size = startSize;
+
+  do {
+    ctx.font = `${fontWeight} ${size}px "Noto Sans Tamil", "Latha", "Nirmala UI", sans-serif`;
+
+    if (ctx.measureText(text).width <= maxWidth || size <= minSize) {
       break;
     }
 
     size--;
-  }while(size>minSize);
+  } while (size >= minSize);
 
   return size;
 }
 
+
+// --------------------------------------------------
+// GENERATE BILL IMAGE
+// --------------------------------------------------
 
 function drawBill(bill) {
   const scale = 2;
   const w = 900;
   const pad = 58;
   const lineH = 56;
-  const tableY = 245;
-  const footerH = 150;
-  const h = tableY + 42 + Math.max(1, bill.items.length) * lineH + footerH;
+
+  // Fixed product table position with space for customer details
+  const tableY = 300;
+
+  // Dynamic canvas height to prevent footer clipping
+  const footerSpace = 245;
+  const h = tableY + 42 + Math.max(1, bill.items.length) * lineH + footerSpace;
 
   const canvas = document.createElement('canvas');
   canvas.width = w * scale;
@@ -285,27 +323,52 @@ function drawBill(bill) {
   c.fillStyle = '#fffdfa';
   c.fillRect(0, 0, w, h);
 
+  // Top border
   c.fillStyle = '#6b2d20';
   c.fillRect(0, 0, w, 14);
 
-  // Centered business header
+
+  // ----------------------------------------------
+  // CENTERED BUSINESS HEADER
+  // ----------------------------------------------
+
   c.textAlign = 'center';
+  c.textBaseline = 'alphabetic';
+
+  const centerX = w / 2;
+  const maxWidth = w - (pad * 2);
+
+  // Tamil devotional text
+  const tamilText = 'ஸ்ரீ பச்சை பெருமாள் ஐய்யனார் துணை';
+
+  fitText(c, tamilText, maxWidth, 18, 11, 'normal');
 
   c.fillStyle = '#6b2d20';
-  c.font = 'bold 18px Arial';
-  c.fillText('ஸ்ரீ பச்சை பெருமாள் ஐய்யனார் துணை', w / 2, 55);
+  c.fillText(tamilText, centerX, 55);
+
+  // Business name
+  const businessName = state.businessName || 'Idhayam Candles';
+
+  fitText(c, businessName, maxWidth, 34, 18, 'bold');
 
   c.fillStyle = '#351b18';
-  c.font = 'bold 34px Georgia';
-  c.fillText(state.businessName || 'Idhayam Candles', w / 2, 100);
+  c.fillText(businessName, centerX, 100);
+
+  // Business subtitle
+  const subtitle = 'MANUFACTURING  •  WHOLESALE';
+
+  fitText(c, subtitle, maxWidth, 14, 10, 'normal');
 
   c.fillStyle = '#796f68';
-  c.font = '14px Arial';
-  c.fillText('MANUFACTURING  •  WHOLESALE', w / 2, 128);
+  c.fillText(subtitle, centerX, 128);
 
   c.textAlign = 'left';
 
-  // Invoice details
+
+  // ----------------------------------------------
+  // INVOICE DETAILS
+  // ----------------------------------------------
+
   let y = 170;
 
   c.fillStyle = '#351b18';
@@ -320,12 +383,20 @@ function drawBill(bill) {
   c.textAlign = 'left';
   y += 35;
 
-  c.fillStyle = '#796f68';
-  c.font = '15px Arial';
+  // Customer name in capital letters
   const customer = (bill.customer || 'Walk-in Customer').toUpperCase();
-  c.fillText('BILL TO: ' + customer, pad, y);
+  const billToText = 'BILL TO: ' + customer;
 
+  fitText(c, billToText, 520, 15, 10, 'normal');
+
+  c.fillStyle = '#796f68';
+  c.textAlign = 'left';
+  c.fillText(billToText, pad, y);
+
+  // Date aligned to the right
   c.textAlign = 'right';
+  c.font = '15px Arial';
+
   c.fillText(
     'Date: ' + new Date(bill.date + 'T00:00:00').toLocaleDateString('en-IN'),
     w - pad,
@@ -335,44 +406,36 @@ function drawBill(bill) {
   c.textAlign = 'left';
   y += 40;
 
-  // Divider
+  // Divider below invoice details
   c.strokeStyle = '#eadfd4';
+  c.lineWidth = 1;
   c.beginPath();
   c.moveTo(pad, y);
   c.lineTo(w - pad, y);
   c.stroke();
 
-  // Customer details
-  // y += 35;
 
-  // c.fillStyle = '#796f68';
-  // c.font = '13px Arial';
-  // c.textAlign = 'left';
-  // c.fillText('BILL TO', pad, y);
+  // ----------------------------------------------
+  // BUSINESS ADDRESS
+  // ----------------------------------------------
 
-  // // Customer name
-  // y += 31;
-
-  // const customer = bill.customer || 'Walk-in Customer';
-
-  // c.fillStyle = '#2c2420';
-  // fitText(c, customer, w - 2 * pad, 22, 10, 'bold');
-  // c.textAlign = 'left';
-  // c.fillText(customer, pad, y);
-
-  // Business address on a separate line
   const address = String(state.businessAddress || '').trim();
 
   if (address) {
     y += 25;
 
+    fitText(c, address, maxWidth, 13, 9, 'normal');
+
     c.fillStyle = '#796f68';
-    fitText(c, address, w - 2 * pad, 13, 9, 'normal');
     c.textAlign = 'left';
     c.fillText(address, pad, y);
   }
 
-  // Product table
+
+  // ----------------------------------------------
+  // PRODUCT TABLE
+  // ----------------------------------------------
+
   y = tableY;
 
   c.fillStyle = '#f5eee6';
@@ -381,6 +444,7 @@ function drawBill(bill) {
   c.fillStyle = '#6b2d20';
   c.font = 'bold 13px Arial';
   c.textAlign = 'left';
+
   c.fillText('PRODUCT', pad + 12, y + 27);
 
   c.textAlign = 'right';
@@ -391,11 +455,16 @@ function drawBill(bill) {
   c.textAlign = 'left';
   y += 42;
 
-  // Product rows
+
+  // ----------------------------------------------
+  // PRODUCT ROWS
+  // ----------------------------------------------
+
   bill.items.forEach(it => {
     c.fillStyle = '#2c2420';
     c.font = '15px Arial';
     c.textAlign = 'left';
+
     c.fillText(String(it.name).slice(0, 38), pad + 12, y + 29);
 
     c.textAlign = 'right';
@@ -413,6 +482,7 @@ function drawBill(bill) {
     c.font = 'bold 15px Arial';
     c.fillText(money(it.amount), w - pad - 12, y + 29);
 
+    // Row divider
     c.strokeStyle = '#eee6df';
     c.beginPath();
     c.moveTo(pad, y + lineH);
@@ -422,25 +492,34 @@ function drawBill(bill) {
     y += lineH;
   });
 
-  // Grand total - label and amount on the same line
+
+  // ----------------------------------------------
+  // GRAND TOTAL
+  // ----------------------------------------------
+
   y += 35;
 
   c.textAlign = 'left';
   c.fillStyle = '#796f68';
   c.font = 'bold 18px Arial';
+
   c.fillText('GRAND TOTAL', w - 350, y);
 
   c.textAlign = 'right';
   c.fillStyle = '#6b2d20';
   c.font = 'bold 26px Georgia';
+
   c.fillText(money(bill.total), w - pad, y);
 
   c.textAlign = 'left';
   y += 55;
 
-  // Footer divider
-  c.textAlign = 'left';
-  y += 105;
+
+  // ----------------------------------------------
+  // FOOTER DIVIDER
+  // ----------------------------------------------
+
+  y += 45;
 
   c.strokeStyle = '#eadfd4';
   c.beginPath();
@@ -448,16 +527,22 @@ function drawBill(bill) {
   c.lineTo(w - pad, y);
   c.stroke();
 
-  // Footer
-  y += 48;
+
+  // ----------------------------------------------
+  // FOOTER
+  // ----------------------------------------------
+
+  y += 45;
 
   c.textAlign = 'center';
   c.fillStyle = '#351b18';
   c.font = 'bold 21px Georgia';
+
   c.fillText('Thank you for your business!', w / 2, y);
 
   c.fillStyle = '#796f68';
   c.font = '13px Arial';
+
   c.fillText(
     state.businessPhone
       ? 'Contact: ' + state.businessPhone
@@ -475,35 +560,49 @@ function drawBill(bill) {
 }
 
 
-async function canvasBlob(canvas){
-  return new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+// --------------------------------------------------
+// CANVAS TO PNG
+// --------------------------------------------------
+
+async function canvasBlob(canvas) {
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
 }
 
-async function generateBill(){
-  const bill=getBill();
 
-  if(!bill.items.length){
+// --------------------------------------------------
+// GENERATE BILL
+// --------------------------------------------------
+
+async function generateBill() {
+  const bill = getBill();
+
+  if (!bill.items.length) {
     toast('Add at least one product and quantity.');
     return;
   }
 
-  if(!bill.customer){
+  if (!bill.customer) {
     toast('Please enter the customer name.');
     $('customerName').focus();
     return;
   }
 
-  const canvas=drawBill(bill);
+  // Wait for available browser fonts before drawing
+  if (document.fonts?.ready) {
+    await document.fonts.ready;
+  }
 
-  lastImageBlob=await canvasBlob(canvas);
-  lastImageName=bill.invoice+'.png';
+  const canvas = drawBill(bill);
 
-  $('billPreview').src=URL.createObjectURL(lastImageBlob);
-  $('outputPanel').hidden=false;
+  lastImageBlob = await canvasBlob(canvas);
+  lastImageName = bill.invoice + '.png';
+
+  $('billPreview').src = URL.createObjectURL(lastImageBlob);
+  $('outputPanel').hidden = false;
 
   state.history.unshift({
     ...bill,
-    createdAt:new Date().toISOString()
+    createdAt: new Date().toISOString()
   });
 
   state.nextInvoice++;
@@ -513,81 +612,94 @@ async function generateBill(){
   updateStats();
 
   $('outputPanel').scrollIntoView({
-    behavior:'smooth',
-    block:'start'
+    behavior: 'smooth',
+    block: 'start'
   });
 
   toast('Bill image generated and bill saved on this device.');
 }
 
-async function shareBill(){
-  if(!lastImageBlob){
+
+// --------------------------------------------------
+// WHATSAPP SHARE
+// --------------------------------------------------
+
+async function shareBill() {
+  if (!lastImageBlob) {
     toast('Generate a bill image first.');
     return;
   }
 
-  const file=new File(
+  const file = new File(
     [lastImageBlob],
     lastImageName,
-    {type:'image/png'}
+    { type: 'image/png' }
   );
 
-  if(navigator.canShare&&navigator.canShare({files:[file]})){
-    try{
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
       await navigator.share({
-        files:[file],
-        title:'Idhayam Candles bill',
-        text:'Invoice from Idhayam Candles'
+        files: [file],
+        title: 'Idhayam Candles bill',
+        text: 'Invoice from Idhayam Candles'
       });
+
       return;
-    }catch(e){
-      if(e.name==='AbortError')return;
+    } catch (e) {
+      if (e.name === 'AbortError') return;
     }
   }
 
   downloadBill();
 
   window.open(
-    'https://wa.me/?text='+encodeURIComponent(
+    'https://wa.me/?text=' + encodeURIComponent(
       'Hello, please find your Idhayam Candles bill attached.'
     ),
     '_blank',
     'noopener'
   );
 
-  $('shareHint').textContent=
+  $('shareHint').textContent =
     'Your PNG was downloaded. In WhatsApp, choose the customer chat and attach the downloaded image.';
 
   toast('Image downloaded. Attach it in WhatsApp.');
 }
 
-function downloadBill(){
-  if(!lastImageBlob)return;
+function downloadBill() {
+  if (!lastImageBlob) return;
 
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(lastImageBlob);
-  a.download=lastImageName;
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(lastImageBlob);
+
+  a.href = url;
+  a.download = lastImageName;
   a.click();
 
-  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-function renderHistory(){
-  const h=$('history');
 
-  $('historyCount').textContent=state.history.length+' bills';
+// --------------------------------------------------
+// BILL HISTORY
+// --------------------------------------------------
 
-  if(!state.history.length){
-    h.innerHTML='<p class="empty">No bills yet. Your completed bills will appear here.</p>';
+function renderHistory() {
+  const h = $('history');
+
+  $('historyCount').textContent = state.history.length + ' bills';
+
+  if (!state.history.length) {
+    h.innerHTML = '<p class="empty">No bills yet. Your completed bills will appear here.</p>';
     return;
   }
 
-  h.innerHTML=state.history.slice(0,50).map((b,i)=>`
+  h.innerHTML = state.history.slice(0, 50).map((b, i) => `
     <div class="history-item">
       <div>
         <b>${esc(b.invoice)} · ${esc(b.customer)}</b>
         <small>
-          ${new Date(b.date+'T00:00:00').toLocaleDateString('en-IN')}
+          ${new Date(b.date + 'T00:00:00').toLocaleDateString('en-IN')}
           · ${b.items.length} item(s)
         </small>
         <br>
@@ -597,72 +709,82 @@ function renderHistory(){
     </div>
   `).join('');
 
-  h.querySelectorAll('[data-rebill]').forEach(btn=>
-    btn.addEventListener('click',()=>{
+  h.querySelectorAll('[data-rebill]').forEach(btn =>
+    btn.addEventListener('click', () => {
       loadHistoryBill(Number(btn.dataset.rebill));
     })
   );
 }
 
-function loadHistoryBill(i){
-  const b=state.history[i];
-  if(!b)return;
+function loadHistoryBill(i) {
+  const b = state.history[i];
+  if (!b) return;
 
-  $('customerName').value=b.customer;
-  $('billDate').value=b.date;
-  $('invoiceNo').value=b.invoice;
-  $('items').innerHTML='';
+  $('customerName').value = b.customer;
+  $('billDate').value = b.date;
+  $('invoiceNo').value = b.invoice;
+  $('items').innerHTML = '';
 
-  b.items.forEach(it=>{
-    let idx=state.products.findIndex(p=>p.name===it.name);
+  b.items.forEach(it => {
+    let idx = state.products.findIndex(p => p.name === it.name);
 
-    if(idx<0){
+    if (idx < 0) {
       state.products.push({
-        type:it.type||'Other',
-        name:it.name,
-        price:it.rate
+        type: it.type || 'Other',
+        name: it.name,
+        price: it.rate
       });
 
-      idx=state.products.length-1;
+      idx = state.products.length - 1;
     }
 
-    addItem(state.products[idx].type,idx);
+    addItem(state.products[idx].type, idx);
 
-    const r=$('items').lastElementChild;
+    const r = $('items').lastElementChild;
 
-    r.querySelector('.qty').value=it.qty;
-    r.querySelector('.qty-type').value=it.qtyType||'pcs';
-    r.querySelector('.rate').value=it.rate;
+    r.querySelector('.qty').value = it.qty;
+    r.querySelector('.qty-type').value = it.qtyType || 'pcs';
+    r.querySelector('.rate').value = it.rate;
   });
 
   calculate();
   toast('Previous bill loaded.');
 }
 
-function updateStats(){
-  const today=dateISO();
-  const bills=state.history.filter(x=>x.date===today);
 
-  $('todayCount').textContent=bills.length;
+// --------------------------------------------------
+// DASHBOARD STATISTICS
+// --------------------------------------------------
 
-  $('todaySales').textContent=money(
-    bills.reduce((a,x)=>a+x.total,0)
+function updateStats() {
+  const today = dateISO();
+  const bills = state.history.filter(x => x.date === today);
+
+  $('todayCount').textContent = bills.length;
+
+  $('todaySales').textContent = money(
+    bills.reduce((a, x) => a + x.total, 0)
   );
 }
 
-function openSettings(){
-  $('businessName').value=state.businessName;
-  $('businessPhone').value=state.businessPhone;
-  $('businessAddress').value=state.businessAddress;
+
+// --------------------------------------------------
+// SETTINGS
+// --------------------------------------------------
+
+function openSettings() {
+  $('businessName').value = state.businessName;
+  $('businessPhone').value = state.businessPhone;
+  $('businessAddress').value = state.businessAddress;
 
   renderProductEditor();
   $('settingsDialog').showModal();
 }
 
-function renderProductEditor(){
-  const el=$('productEditor');
+function renderProductEditor() {
+  const el = $('productEditor');
 
-  el.innerHTML=state.products.map((p,i)=>`
+  el.innerHTML = state.products.map((p, i) => `
     <div class="product-edit-row">
       <input aria-label="Product type" class="ptype"
         value="${esc(p.type)}" maxlength="60" placeholder="Product type">
@@ -671,26 +793,26 @@ function renderProductEditor(){
         value="${esc(p.name)}" maxlength="60" placeholder="Product name">
 
       <input aria-label="Default price" class="pprice"
-        type="number" min="0" step="0.01" value="${Number(p.price)||0}">
+        type="number" min="0" step="0.01" value="${Number(p.price) || 0}">
 
       <button type="button" class="remove-btn"
         data-remove-product="${i}">×</button>
     </div>
   `).join('');
 
-  el.querySelectorAll('[data-remove-product]').forEach(b=>
-    b.addEventListener('click',()=>{
-      state.products.splice(Number(b.dataset.removeProduct),1);
+  el.querySelectorAll('[data-remove-product]').forEach(b =>
+    b.addEventListener('click', () => {
+      state.products.splice(Number(b.dataset.removeProduct), 1);
       renderProductEditor();
     })
   );
 }
 
-function addProductEditorRow(){
-  const row=document.createElement('div');
-  row.className='product-edit-row';
+function addProductEditorRow() {
+  const row = document.createElement('div');
+  row.className = 'product-edit-row';
 
-  row.innerHTML=`
+  row.innerHTML = `
     <input class="ptype" aria-label="Product type"
       placeholder="Product type" maxlength="60">
 
@@ -703,63 +825,73 @@ function addProductEditorRow(){
     <button type="button" class="remove-btn">×</button>
   `;
 
-  row.querySelector('button').addEventListener('click',()=>row.remove());
+  row.querySelector('button').addEventListener('click', () => row.remove());
 
   $('productEditor').appendChild(row);
 }
 
-function saveSettings(){
-  const types=[...$('productEditor').querySelectorAll('.ptype')];
-  const names=[...$('productEditor').querySelectorAll('.pname')];
-  const prices=[...$('productEditor').querySelectorAll('.pprice')];
+function saveSettings() {
+  const types = [...$('productEditor').querySelectorAll('.ptype')];
+  const names = [...$('productEditor').querySelectorAll('.pname')];
+  const prices = [...$('productEditor').querySelectorAll('.pprice')];
 
-  const products=names.map((n,i)=>({
-    type:types[i].value.trim()||'Other',
-    name:n.value.trim(),
-    price:Math.max(0,Number(prices[i].value)||0)
-  })).filter(p=>p.name);
+  const products = names.map((n, i) => ({
+    type: types[i].value.trim() || 'Other',
+    name: n.value.trim(),
+    price: Math.max(0, Number(prices[i].value) || 0)
+  })).filter(p => p.name);
 
-  if(!products.length){
+  if (!products.length) {
     toast('Please keep at least one product.');
     return;
   }
 
-  state.businessName=$('businessName').value.trim()||'Idhayam Candles';
-  state.businessPhone=$('businessPhone').value.trim();
-  state.businessAddress=$('businessAddress').value.trim();
-  state.products=products;
+  state.businessName = $('businessName').value.trim() || 'Idhayam Candles';
+  state.businessPhone = $('businessPhone').value.trim();
+  state.businessAddress = $('businessAddress').value.trim();
+  state.products = products;
 
   saveState();
 
   $('settingsDialog').close();
-  $('items').innerHTML='';
+  $('items').innerHTML = '';
 
   addItem();
 
   toast('Business details and products saved.');
 }
 
-function clearBill(){
-  if(!confirm('Clear the current bill?'))return;
 
-  $('customerName').value='';
-  $('billDate').value=dateISO();
+// --------------------------------------------------
+// CLEAR BILL
+// --------------------------------------------------
+
+function clearBill() {
+  if (!confirm('Clear the current bill?')) return;
+
+  $('customerName').value = '';
+  $('billDate').value = dateISO();
 
   refreshInvoice();
 
-  $('items').innerHTML='';
+  $('items').innerHTML = '';
   addItem();
 
-  $('outputPanel').hidden=true;
-  lastImageBlob=null;
+  $('outputPanel').hidden = true;
+  lastImageBlob = null;
 }
 
-function init(){
-  $('billDate').value=dateISO();
+
+// --------------------------------------------------
+// INITIALIZATION
+// --------------------------------------------------
+
+function init() {
+  $('billDate').value = dateISO();
   refreshInvoice();
 
-  if(!state.products.length){
-    state.products=sampleProducts.map(p=>({...p}));
+  if (!state.products.length) {
+    state.products = sampleProducts.map(p => ({ ...p }));
     saveState();
   }
 
@@ -767,32 +899,35 @@ function init(){
   renderHistory();
   updateStats();
 
-  $('billDate').addEventListener('change',refreshInvoice);
-  $('settingsBtn').addEventListener('click',openSettings);
-  $('addRowBtn').addEventListener('click',()=>addItem());
-  $('generateBtn').addEventListener('click',generateBill);
-  $('clearBtn').addEventListener('click',clearBill);
-  $('shareBtn').addEventListener('click',shareBill);
-  $('downloadBtn').addEventListener('click',downloadBill);
+  $('billDate').addEventListener('change', refreshInvoice);
 
-  $('refreshHistory').addEventListener('click',()=>{
+  $('settingsBtn').addEventListener('click', openSettings);
+  $('addRowBtn').addEventListener('click', () => addItem());
+
+  $('generateBtn').addEventListener('click', generateBill);
+  $('clearBtn').addEventListener('click', clearBill);
+
+  $('shareBtn').addEventListener('click', shareBill);
+  $('downloadBtn').addEventListener('click', downloadBill);
+
+  $('refreshHistory').addEventListener('click', () => {
     renderHistory();
     updateStats();
   });
 
-  $('saveSettingsBtn').addEventListener('click',saveSettings);
-  $('addProductBtn').addEventListener('click',addProductEditorRow);
+  $('saveSettingsBtn').addEventListener('click', saveSettings);
+  $('addProductBtn').addEventListener('click', addProductEditorRow);
 
-  $('resetProductsBtn').addEventListener('click',()=>{
-    if(confirm('Restore the sample product list? This replaces your current product list.')){
-      state.products=sampleProducts.map(p=>({...p}));
+  $('resetProductsBtn').addEventListener('click', () => {
+    if (confirm('Restore the sample product list? This replaces your current product list.')) {
+      state.products = sampleProducts.map(p => ({ ...p }));
       renderProductEditor();
     }
   });
 
-  $('clearHistoryBtn').addEventListener('click',()=>{
-    if(confirm('Permanently clear all saved bill history on this device?')){
-      state.history=[];
+  $('clearHistoryBtn').addEventListener('click', () => {
+    if (confirm('Permanently clear all saved bill history on this device?')) {
+      state.history = [];
       saveState();
       renderHistory();
       updateStats();
