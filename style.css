@@ -1035,3 +1035,7 @@ dialog::backdrop {
     font-size: 14px;
     color: #15803d;
 }
+
+.active {
+    background: lightgray;
+}
