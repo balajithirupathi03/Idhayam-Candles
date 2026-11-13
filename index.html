@@ -9,11 +9,15 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><span class="heart">♥</span>
-      <div><strong>Idhayam Candles</strong><small>NON-GST BILLING</small></div>
+    <div class="brand">
+      <span class="heart">♥</span>
+      <div><strong>Idhayam Candles</strong><small>Invoice</small></div>
     </div>
-    <div class="top-actions"><button class="btn ghost" id="settingsBtn">⚙ Products & settings</button></div>
+    <div class="top-actions">
+      <button class="btn ghost" id="settingsBtn">⚙ Products &amp; settings</button>
+    </div>
   </header>
+
   <main class="wrap">
     <section class="intro">
       <div>
@@ -25,32 +29,57 @@
         <div><small>Today's sales</small><b id="todaySales">₹0</b></div>
       </div>
     </section>
+
     <div class="layout">
       <section class="panel bill-panel">
         <div class="panel-head">
           <div>
             <p class="eyebrow">NEW INVOICE</p>
             <h2>Bill details</h2>
-          </div><span class="pill">Non-GST</span>
+          </div>
         </div>
-        <div class="form-grid"><label>Customer name<input id="customerName" placeholder="Customer / shop name"></label><label>Bill date<input id="billDate" type="date"></label><label>Invoice number<input id="invoiceNo" readonly></label></div>
+
+        <div class="form-grid">
+          <label>Customer name
+            <input id="customerName" placeholder="Customer / shop name">
+          </label>
+          <label>Bill date
+            <input id="billDate" type="date">
+          </label>
+          <label>Invoice number
+            <input id="invoiceNo" readonly>
+          </label>
+        </div>
+
         <div class="items-head"><h3>Products</h3></div>
         <div id="items" class="items"></div>
-        <div class="add-items-bottom"><button class="btn soft" id="addRowBtn">＋ Add item</button></div>
+        <div class="add-items-bottom">
+          <button class="btn soft" id="addRowBtn">＋ Add item</button>
+        </div>
+
         <div class="totals">
           <div class="grand"><span>Grand total</span><strong id="grandTotal">₹0.00</strong></div>
         </div>
-        <div class="actions"><button class="btn primary" id="generateBtn">Generate bill image</button><button class="btn soft" id="clearBtn">Clear bill</button></div>
+
+        <div class="actions">
+          <button class="btn primary" id="generateBtn">Generate bill image</button>
+          <button class="btn soft" id="clearBtn">Clear bill</button>
+        </div>
         <p class="hint">Type product name or alias (e.g. avatra for அவதார்). Prices start with your saved default; you can change the rate per bill.</p>
       </section>
+
       <aside class="panel side-panel">
         <div class="panel-head">
           <div>
             <p class="eyebrow">RECENT ACTIVITY</p>
             <h2>Bill history</h2>
-          </div><button class="text-btn" id="refreshHistory">Refresh</button>
+          </div>
+          <button class="text-btn" id="refreshHistory">Refresh</button>
         </div>
-        <div class="history-summary"><span>Saved on this device</span><b id="historyCount">0 bills</b></div>
+        <div class="history-summary">
+          <span>Saved on this device</span>
+          <b id="historyCount">0 bills</b>
+        </div>
         <div id="history" class="history"></div>
         <button class="btn soft danger-outline" id="clearHistoryBtn">Clear all bill history</button>
       </aside>
@@ -78,15 +107,21 @@
       <div class="dialog-head">
         <div>
           <p class="eyebrow">SETUP</p>
-          <h2>Business & products</h2>
+          <h2>Business &amp; products</h2>
         </div>
         <button type="button" class="icon-btn" id="closeSettingsBtn" aria-label="Close">✕</button>
       </div>
 
       <div class="settings-grid">
-        <label>Business name<input id="businessName" maxlength="80"></label>
-        <label>Phone<input id="businessPhone" maxlength="40"></label>
-        <label class="full">Address<textarea id="businessAddress" rows="2" maxlength="160"></textarea></label>
+        <label>Business name
+          <input id="businessName" maxlength="80">
+        </label>
+        <label>Phone
+          <input id="businessPhone" maxlength="40">
+        </label>
+        <label class="full">Address
+          <textarea id="businessAddress" rows="2" maxlength="160"></textarea>
+        </label>
       </div>
 
       <div class="product-list-head">
@@ -129,8 +164,19 @@
     <div data-product-name="ராக்கெட் ஃபேன்சி" data-alias="rocket rakket fancy" data-default-price="15"></div>
     <div data-product-name="ஜெட் ஃபேன்சி" data-alias="jet fancy" data-default-price="15"></div>
     <div data-product-name="பாகுபலி ஃபேன்சி" data-alias="baahubali baghubali bahubali fancy" data-default-price="32"></div>
-    <div data-product-name="அவதார் ஃபேன்சி" data-alias="avatar avatra avathar fancy" data-default-price="45"></div>
+    <div data-product-name="சேர்மன் 30 திரி" data-alias="searman serman" data-default-price="11"></div>
+    <div data-product-name="காம ராஜா 30 திரி" data-alias="Raja Kama" data-default-price="18"></div>
+    <div data-product-name="வாழ்க வளமுடன் 30 திரி" data-alias="valga vazhga valamudan" data-default-price="20"></div>
+    <div data-product-name="இதயம் 30 திரி" data-alias="idayam idhayam ithayam" data-default-price="32"></div>
+    <div data-product-name="1.50Rs திரி" data-alias="6" data-default-price="8"></div>
+    <div data-product-name="3Rs திரி" data-alias="6" data-default-price="9"></div>
+    <div data-product-name="6Rs திரி" data-alias="6" data-default-price="23"></div>
+    <div data-product-name="12Rs திரி" data-alias="12" data-default-price="45"></div>
+    <div data-product-name="15Rs திரி" data-alias="15" data-default-price="60"></div>
+    <div data-product-name="40Rs திரி" data-alias="40" data-default-price="30"></div>
+    <div data-product-name="60Rs திரி" data-alias="60" data-default-price="45"></div>
   </template>
+
   <script src="script.js"></script>
 </body>
 </html>
